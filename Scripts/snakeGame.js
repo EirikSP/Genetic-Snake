@@ -1,3 +1,4 @@
+let snake = [[4,2],[3,2],[3,3]];
 
 
 let m = 10;
@@ -5,9 +6,9 @@ let m = 10;
 let board = new Array(m);
 
 
-let fruit = [3, 2];
+let fruit = spawnFruit();
 
-
+let exSolution = generateSolution();
 
 for (let i = 0; i < m; i++) {
     board[i] = new Array(0)
@@ -16,6 +17,22 @@ for (let i = 0; i < m; i++) {
     }
 }
 
+
+function spawnFruit(){
+    let fruit = [Math.round(Math.random()*9), Math.round(Math.random()*9)]
+    let fruitCheck = true;
+    while (fruitCheck) {
+        fruit = [Math.round(Math.random()*9), Math.round(Math.random()*9)]
+        fruitCheck = false;
+        snake.forEach(element => {
+            if (element[0] == fruit[0] && element[1] == fruit[1]) {
+                fruitCheck = true
+                
+            }
+        });
+    }
+    return fruit
+}
 
 
 
@@ -100,9 +117,9 @@ function updateBoard(){
 
 
 
-function drawBoard(){
+function drawBoard(board){
     
-    updateBoard();
+    
     
 
     for (let i = 0; i < board.length; i++) {
@@ -121,19 +138,19 @@ function drawBoard(){
             
         }
     }
+
+    ctx.fillStyle = 'rgb(0, 0, 255)';
+    ctx.fillRect(snake[0][0]*100, snake[0][1]*100, 100, 100);
+
+
 };
 
 
 
 
-let snake = new Array(0);
-snake.push([4,2])
-snake.push([3,2])
-snake.push([3,3])
-snake.push([3,4])
-snake.push([3,5])
 
-drawBoard();
+
+drawBoard(board);
 document.addEventListener('keydown', function(event) {
     if(event.code == "ArrowUp") {
         snakeMove(0);
@@ -151,21 +168,34 @@ document.addEventListener('keydown', function(event) {
 
 function snakeMove(direction){
     if(direction == 0){
-        snake.splice(snake.length- 1, 1);
         snake.splice(0, 0, [snake[0][0], snake[0][1] - 1])  
     }
     if(direction == 1){
-        snake.splice(snake.length- 1, 1);
-        snake.splice(0, 0, [snake[0][0] + 1, snake[0][1]])  
+        snake.splice(0, 0, [snake[0][0] + 1, snake[0][1]])
     }
     if(direction == 2){
-        snake.splice(snake.length- 1, 1);
-        snake.splice(0, 0, [snake[0][0], snake[0][1] + 1])  
+        snake.splice(0, 0, [snake[0][0], snake[0][1] + 1])
     }
     if(direction == 3){
-        snake.splice(snake.length- 1, 1);
-        snake.splice(0, 0, [snake[0][0] - 1, snake[0][1]])  
+        
+        snake.splice(0, 0, [snake[0][0] - 1, snake[0][1]])
     }
+    
+    if(snake[0][0] == fruit[0] && snake[0][1] == fruit[1]){
+        fruit = spawnFruit();
+    } else{
+        snake.splice(snake.length - 1, 1);
+    }
+
+    let deathCheck = false;
+    snake.slice(1).forEach(element => {
+        if (element[0] == snake[0][0] && element[1] == snake[0][1]) {
+            deathCheck = true;
+        }
+    })
+    
+    
+
     snake.forEach(element => {
         if (element[0] > 9) {
             element[0] = element[0] - 10
@@ -180,20 +210,81 @@ function snakeMove(direction){
             element[1] =  10 + element[1]
         }
     });
-    drawBoard();
+    updateBoard();
+    //drawBoard(board);
+    return deathCheck;
 }
 
-drawBoard();
+drawBoard(board);
 
 params = generateSolution();
 console.log(params[2][3][2]);
 
 
-i=0
 
 
-while (i < 1000) {
-    dir = predict(generateSolution());
-    snakeMove(dir)
-    i +=1
+function gameFitness(solution) {
+    snake = [[4,2],[3,2],[3,3]];
+    fruit = spawnFruit();
+    let alive = true;
+    let i = 0;
+    let fitness = 0;
+    while(alive && i < 500){
+        dir = predict(solution);
+        if (snakeMove(dir)){
+            alive = false;
+            fitness = (snake.length - 3)**2;
+        }
+        i += 1;
+    }
+    return fitness
 }
+
+
+document.addEventListener('keydown', function(event) {
+    if(event.key == "c") {
+        dir = predict(exSolution);
+        if (snakeMove(dir)){
+            snake = [[4,2],[3,2],[3,3]];
+            fruit = spawnFruit();
+        }
+    }
+});
+
+
+function mutateGenes(solution){
+    for (let k = 0; k < 4; k++) {
+        for (let i = 0; i < m; i++) {
+            for (let j = 0; j < m; j++) {
+                solution[k][i][j] += solution[k][i][j]*(1 + Math.random()/50);
+            }
+        }
+    }
+    solution[5] += solution[5]*(1 + Math.random()/50);
+    return solution
+}
+
+
+function generationPass(solutions){
+    let solutionRank = [];
+    for (let sol = 0; sol < solutions.length; sol++) {
+        let avgFitness = 0;
+        avgFitness = (gameFitness(solutions[sol]) + gameFitness(solutions[sol]) + gameFitness(solutions[sol]) +gameFitness(solutions[sol]) + gameFitness(solutions[sol]))/5
+        solutionRank.push([avgFitness, sol]);
+    }
+    solutionRank.sort((a,b)=>{return b[0]-a[0]})
+    console.log(solutionRank);
+    
+}
+
+
+
+solutions = []
+
+for (let i = 0; i < 100; i++) {
+    solutions.push(generateSolution());
+}
+
+
+
+generationPass(solutions);
